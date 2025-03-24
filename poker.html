@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poker Tracker</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            background-color: #1b1b1b; 
+            color: #fff;
+        }
+        h2, h3 {
+            color: #28a745; /* Green felt color */
+        }
+        form {
+            margin: 20px 0;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            border: none;
+            width: 80%; /* Make inputs and buttons fit better on mobile */
+        }
+        input {
+            background-color: #333;
+            color: white;
+        }
+        button {
+            background-color: #28a745;
+            color: black;
+            cursor: pointer;
+        }
+        table {
+            width: 80%; /* Adjust width to fit on mobile screens */
+            margin: auto;
+            border-collapse: collapse;
+            background-color: #222;
+            color: white;
+        }
+        th, td {
+            border: 1px solid #28a745;
+            padding: 10px;
+        }
+        th {
+            background-color: #28a745;
+            color: black;
+        }
+        .highlight {
+            font-weight: bold;
+            color: #ff4444;
+        }
+
+        /* Media Query for small screens */
+        @media screen and (max-width: 768px) {
+            h2, h3 {
+                font-size: 1.5em; /* Make headings smaller on mobile */
+            }
+
+            input, button {
+                width: 90%; /* Expand inputs and buttons on smaller screens */
+                padding: 15px;
+            }
+
+            table {
+                width: 100%; /* Make table take full width on small screens */
+            }
+
+            th, td {
+                font-size: 14px; /* Adjust font size for better readability */
+            }
+        }
+    </style>
+</head>
+<body>
+    <h2>Poker Night Tracker</h2>
+    <form id="pokerForm">
+        <input type="text" id="name" placeholder="Your Name" required>
+        <input type="number" id="amount" placeholder="Amount Won (+) / Lost (-)" required>
+        <button type="submit">Submit</button>
+    </form>
+    
+    <h3>Leaderboard</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Total Amount ($)</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="leaderboard"></tbody>
+    </table>
+    
+    <h3>Biggest Wins/Losses</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th>Name</th>
+                <th>Amount ($)</th>
+            </tr>
+        </thead>
+        <tbody id="biggest"></tbody>
+    </table>
+    
+    <script>
+        const form = document.getElementById('pokerForm');
+        const leaderboardTable = document.getElementById('leaderboard');
+        const biggestTable = document.getElementById('biggest');
+        let players = JSON.parse(localStorage.getItem('pokerLeaderboard')) || {};
+        
+        function updateLeaderboard() {
+            leaderboardTable.innerHTML = '';
+            const sortedPlayers = Object.entries(players).sort((a, b) => b[1] - a[1]);
+            sortedPlayers.forEach(([name, total]) => {
+                const row = `<tr>
+                    <td>${name}</td>
+                    <td>${total}</td>
+                    <td><button class="delete-btn" data-name="${name}">Delete</button></td>
+                </tr>`;
+                leaderboardTable.innerHTML += row;
+            });
+            localStorage.setItem('pokerLeaderboard', JSON.stringify(players));
+            updateBiggest();
+            addDeleteListeners(); // Attach delete button event listeners
+        }
+        
+        function updateBiggest() {
+            biggestTable.innerHTML = '';
+            if (Object.keys(players).length === 0) return;
+            
+            const maxWinner = Object.entries(players).reduce((max, player) => player[1] > max[1] ? player : max);
+            const maxLoser = Object.entries(players).reduce((min, player) => player[1] < min[1] ? player : min);
+            
+            biggestTable.innerHTML = `
+                <tr>
+                    <td class="highlight">Biggest Winner</td>
+                    <td>${maxWinner[0]}</td>
+                    <td>${maxWinner[1]}</td>
+                </tr>
+                <tr>
+                    <td class="highlight">Biggest Loser</td>
+                    <td>${maxLoser[0]}</td>
+                    <td>${maxLoser[1]}</td>
+                </tr>`;
+        }
+        
+        function addDeleteListeners() {
+            const deleteButtons = document.querySelectorAll('.delete-btn');
+            deleteButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const nameToDelete = e.target.getAttribute('data-name');
+                    delete players[nameToDelete];
+                    updateLeaderboard();
+                });
+            });
+        }
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('name').value.trim();
+            const amount = parseFloat(document.getElementById('amount').value);
+            if (!name || isNaN(amount)) return;
+            players[name] = (players[name] || 0) + amount;
+            updateLeaderboard();
+            form.reset();
+        });
+        
+        updateLeaderboard();
+    </script>
+</body>
+</html>
